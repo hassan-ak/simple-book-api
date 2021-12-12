@@ -82,3 +82,85 @@ Rest API's can be tested by various ways. One is to use "postman". Create a new 
 
 ![Welcome Request](./snaps/step02-01.PNG)
 While adding methods "GET" option is selected so in case one send any request other than GET will results in a "Missing Authentication Token" message.
+
+### 3. Create path to check status
+
+Now add a subpath to the root path of the api to check status if the api is working fine or facing any error. For that first update "lib/simple-book-api-stack.ts" and create a new lambda function, create api lambda function integration, add status resource to root path (new path defination) and add a get method on the lambda integartion. Also add CORS options to resource.
+
+```js
+const statusFunction = new lambda.Function(this, "statusFunction", {
+  functionName: "Status-Function-Simple-Book-Api",
+  runtime: lambda.Runtime.NODEJS_14_X,
+  code: lambda.Code.fromAsset("lambdas"),
+  handler: "status.handler",
+  memorySize: 1024,
+});
+const statusFunctionIntegration = new apigw.LambdaIntegration(statusFunction);
+const status = api.root.addResource("status");
+status.addMethod("GET", statusFunctionIntegration);
+addCorsOptions(status);
+```
+
+Cross-origin resource sharing (CORS) is a browser security feature that restricts cross-origin HTTP requests that are initiated from scripts running in the browser. So there is need to define CORS function.
+
+```js
+export function addCorsOptions(apiResource: apigw.IResource) {
+  apiResource.addMethod(
+    "OPTIONS",
+    new apigw.MockIntegration({
+      integrationResponses: [
+        {
+          statusCode: "200",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Headers":
+              "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+            "method.response.header.Access-Control-Allow-Origin": "'*'",
+            "method.response.header.Access-Control-Allow-Credentials":
+              "'false'",
+            "method.response.header.Access-Control-Allow-Methods":
+              "'OPTIONS,GET,PUT,POST,DELETE'",
+          },
+        },
+      ],
+      passthroughBehavior: apigw.PassthroughBehavior.NEVER,
+      requestTemplates: {
+        "application/json": '{"statusCode": 200}',
+      },
+    }),
+    {
+      methodResponses: [
+        {
+          statusCode: "200",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Headers": true,
+            "method.response.header.Access-Control-Allow-Methods": true,
+            "method.response.header.Access-Control-Allow-Credentials": true,
+            "method.response.header.Access-Control-Allow-Origin": true,
+          },
+        },
+      ],
+    }
+  );
+}
+```
+
+Create "lambdas/status.ts" to define handler for the status lambda function. This will return simple message as response.
+
+```js
+export async function handler() {
+  try {
+    return {
+      statusCode: 201,
+      body: `{ "Status": "Success" }`,
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: `{ "Status": "Failure" }`,
+    };
+  }
+}
+```
+
+Deploy the app using `cdk deploy` and then test the api using postman. For testing create new GET request with `/status` path and send the request.
+![Status Request](./snaps/step03-01.PNG)
