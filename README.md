@@ -9,8 +9,12 @@ By doing this project we are able to learn following:-
   - Define api lambda integration
   - Add resources to the root
   - Add methods
-- Test API using postman
+- Test REST API using postman
   - Get request
+  - Post request
+    - Request body
+- How to create DynamoDB table
+  - Put data in table
 
 ## Steps to code "Simple Book API"
 
@@ -81,9 +85,10 @@ https://**********.execute-api.*********.amazonaws.com/prod/
 Rest API's can be tested by various ways. One is to use "postman". Create a new collection in a postman workspace. Create a new GET request in the collection and provide API URL in it. One can make a new varibale to store the URL so it is easy to use while creating new requests. Send request and after successful execution reponse will be as follows.
 
 ![Welcome Request](./snaps/step02-01.PNG)
+
 While adding methods "GET" option is selected so in case one send any request other than GET will results in a "Missing Authentication Token" message.
 
-### 3. Create path to check status
+### 3. Create resource to check status
 
 Now add a subpath to the root path of the api to check status if the api is working fine or facing any error. For that first update "lib/simple-book-api-stack.ts" and create a new lambda function, create api lambda function integration, add status resource to root path (new path defination) and add a get method on the lambda integartion. Also add CORS options to resource.
 
@@ -163,4 +168,166 @@ export async function handler() {
 ```
 
 Deploy the app using `cdk deploy` and then test the api using postman. For testing create new GET request with `/status` path and send the request.
+
 ![Status Request](./snaps/step03-01.PNG)
+
+### 4. Create resource to add new book
+
+Next step is to create a resource so we can add new books to the database. In this project DynamoDB is used as database. Update "lib/simple-book-api-stack.ts" to define a new dynamodb table for storing books.
+
+```js
+import { aws_dynamodb as ddb } from "aws-cdk-lib";
+const allBooksTable = new ddb.Table(this, "AllBooksTable", {
+  tableName: "Simple_Book_Api_All_Books",
+  partitionKey: {
+    name: "bookID",
+    type: ddb.AttributeType.STRING,
+  },
+  sortKey: {
+    name: "book_type",
+    type: ddb.AttributeType.STRING,
+  },
+});
+```
+
+Create a lambda function to add new book to database and grant read write permission for ddb table. Also create lambda integration, resource, method and Cors options. One thing to keep in mind POST method is to be used here as we are adding data to ddb table.
+
+```js
+const addBooksFunction = new lambda.Function(this, "addBooksFunction", {
+  functionName: "Add-Books-Function-Simple-Book-Api",
+  runtime: lambda.Runtime.NODEJS_14_X,
+  code: lambda.Code.fromAsset("lambdas"),
+  handler: "addBooks.handler",
+  memorySize: 1024,
+  environment: {
+    PRIMARY_KEY_ALL: "bookID",
+    TABLE_NAME_ALL: allBooksTable.tableName,
+  },
+});
+allBooksTable.grantReadWriteData(addBooksFunction);
+const addBooksFunctionIntegration = new apigw.LambdaIntegration(
+  addBooksFunction
+);
+const books = api.root.addResource("books");
+books.addMethod("POST", addBooksFunctionIntegration);
+addCorsOptions(books);
+```
+
+Install "aws-sdk" using `npm i aws-sdk` as we need to use AWS resources in the lambda function. Create "lambdas/addBooks.ts" to define the handler for addBooks function so new book can be added into the database. New book can be added by provding book data in the request body. There are multiple checks to be implemented.
+
+```js
+import * as AWS from "aws-sdk";
+import { randomBytes } from "crypto";
+const db = new AWS.DynamoDB.DocumentClient();
+
+// enivronment variables
+const PRIMARY_KEY_ALL = process.env.PRIMARY_KEY_ALL || "";
+const TABLE_NAME_ALL = process.env.TABLE_NAME_ALL || "";
+
+export const handler = async (event: any = {}): Promise<any> => {
+  // Check if body parameters are given and number of parameters are as required for the request
+  if (!event.body || Object.keys(JSON.parse(event.body)).length > 7) {
+    return {
+      statusCode: 400,
+      body: `Invalid Request, Body parameters are missing or too many parameters are given. Give parameters in the following format.\n{
+          "book": "Book Name", 
+          "author": "Authos's Name", 
+          "isbn": "Book isbn", 
+          "book_type": "Book Type (fiction/non-fiction)",
+          "price": Book Price, 
+          "stock": Number of books to be added, 
+          "available": true
+        }`,
+    };
+  }
+  // Get book parameters from request body and store them in a varibale
+  const item =
+    typeof event.body == "object" ? event.body : JSON.parse(event.body);
+  // Check if body parameters are in correct form
+  if (
+    !item.book ||
+    !item.author ||
+    !item.isbn ||
+    !(item.book_type === "fiction" || item.book_type === "non-fiction") ||
+    !!(isNaN(item.price) || item.price < 0) ||
+    !!(isNaN(item.stock) || item.stock % 1 != 0 || item.stock < 0) ||
+    !item.available
+  ) {
+    return {
+      statusCode: 400,
+      body: `Invalid Request, Few body parameters are missing or parameters are in wrong format. Give parameters correctly .\n{
+        "book": ${item.book || "Parameter Missing"}, 
+        "author": ${item.author || "Parameter Missing"}, 
+        "isbn": ${item.isbn || "Parameter Missing"}, 
+        "book_type": ${
+          !item.book_type
+            ? "Parameter Missing"
+            : !(
+                item.book_type === "fiction" || item.book_type === "non-fiction"
+              )
+            ? `Give "fiction" or "non-fiction" for book_type`
+            : item.book_type
+        },
+        "price": ${
+          !item.price
+            ? "Parameter Missing"
+            : !!(isNaN(item.price) || item.price < 0)
+            ? "Give a positive number for price"
+            : item.price
+        }, 
+        "stock": ${
+          !item.stock
+            ? "Parameter Missing"
+            : !!(isNaN(item.stock) || item.stock % 1 != 0 || item.stock < 0)
+            ? "Give a positive whole number for stock"
+            : item.price
+        }, 
+        "available": ${item.available || "Parameter Missing"}
+      }`,
+    };
+  }
+  // Asign book_id and set params to be passed to ddb operation
+  item[PRIMARY_KEY_ALL] = randomBytes(32).toString("hex");
+  const params = {
+    TableName: TABLE_NAME_ALL,
+    Item: item,
+  };
+  // When all conditions are good to go, put data in the table and return item as output
+  // in case of error return error
+  try {
+    await db.put(params).promise();
+    return {
+      statusCode: 200,
+      body: `Book with following detail success-fully added to the database.\n{
+        "book": ${item.book}, 
+        "author": ${item.author}, 
+        "bookID":${item.bookID},
+        "isbn": ${item.isbn}, 
+        "book_type": ${item.book_type},
+        "price": ${item.price}, 
+        "stock": ${item.stock}, 
+        "available": ${item.available}
+      }`,
+    };
+  } catch (err) {
+    console.log("DynamoDB error: ", err);
+    return { statusCode: 500, body: err };
+  }
+};
+```
+
+Deploy the app using `cdk deploy`, this all our changes will be deployed and a new DynamoDB table will be created as well. For testing create new POST request on postman with sub parth `/books`.
+
+When no body is given sending this request will return an error In case more than requiered parameters are given in body again same error will occur.
+
+![AddBook Request with no body](./snaps/step04-01.PNG)
+
+If some of the parameters are missing or in wrong format another error will be encountered.
+
+![AddBook Request with wrong/missing parameters](./snaps/step04-02.PNG)
+
+If all the conditions are staisfied book will be added to table.
+
+![AddBook Request](./snaps/step04-03.PNG)
+
+If there is some error with DynamoDB it will be returned as well.
