@@ -2,10 +2,27 @@ import { Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { aws_lambda as lambda } from "aws-cdk-lib";
 import { aws_apigateway as apigw } from "aws-cdk-lib";
+import { aws_dynamodb as ddb } from "aws-cdk-lib";
 
 export class SimpleBookApiStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
+
+    // ********************************
+    // ***      DynamoDB Tables     ***
+    // ********************************
+    // DynamoDB to display all books
+    const allBooksTable = new ddb.Table(this, "AllBooksTable", {
+      tableName: "Simple_Book_Api_All_Books",
+      partitionKey: {
+        name: "bookID",
+        type: ddb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "book_type",
+        type: ddb.AttributeType.STRING,
+      },
+    });
 
     // ********************************
     // ***     Lambda Functions     ***
@@ -18,7 +35,7 @@ export class SimpleBookApiStack extends Stack {
       handler: "welcome.handler",
       memorySize: 1024,
     });
-    // Lmbda function to check API status
+    // Lambda function to check API status
     const statusFunction = new lambda.Function(this, "statusFunction", {
       functionName: "Status-Function-Simple-Book-Api",
       runtime: lambda.Runtime.NODEJS_14_X,
@@ -26,6 +43,24 @@ export class SimpleBookApiStack extends Stack {
       handler: "status.handler",
       memorySize: 1024,
     });
+    // Lambda function to add new book to ddb table
+    const addBooksFunction = new lambda.Function(this, "addBooksFunction", {
+      functionName: "Add-Books-Function-Simple-Book-Api",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("lambdas"),
+      handler: "addBooks.handler",
+      memorySize: 1024,
+      environment: {
+        PRIMARY_KEY_ALL: "bookID",
+        TABLE_NAME_ALL: allBooksTable.tableName,
+      },
+    });
+
+    // ********************************
+    // ***  DynamoDB's Permissions  ***
+    // ********************************
+    // Grant the Lambda function's read and write access to the DynamoDB table
+    allBooksTable.grantReadWriteData(addBooksFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -46,25 +81,34 @@ export class SimpleBookApiStack extends Stack {
     const statusFunctionIntegration = new apigw.LambdaIntegration(
       statusFunction
     );
+    // Lambda integration for addBooks function
+    const addBooksFunctionIntegration = new apigw.LambdaIntegration(
+      addBooksFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
     // ********************************
     // Status resources
     const status = api.root.addResource("status");
+    // books resources
+    const books = api.root.addResource("books");
 
     // ********************************
     // ***      Methods on API      ***
     // ********************************
-    // Method for root path ("/")
+    // Method for root path (GET:"/")
     api.root.addMethod("GET", welcomeFunctionIntegration);
-    // Method for status path ("/status")
+    // Method for status path (GET:"/status")
     status.addMethod("GET", statusFunctionIntegration);
+    // Method for  adding new book (POST:"/books")
+    books.addMethod("POST", addBooksFunctionIntegration);
 
     // ********************************
     // *** CORS option for resource ***
     // ********************************
     addCorsOptions(status);
+    addCorsOptions(books);
   }
 }
 
