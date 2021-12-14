@@ -18,10 +18,6 @@ export class SimpleBookApiStack extends Stack {
         name: "bookID",
         type: ddb.AttributeType.STRING,
       },
-      sortKey: {
-        name: "book_type",
-        type: ddb.AttributeType.STRING,
-      },
     });
 
     // ********************************
@@ -55,12 +51,24 @@ export class SimpleBookApiStack extends Stack {
         TABLE_NAME_ALL: allBooksTable.tableName,
       },
     });
+    // Lambda function to get list of all books
+    const allBooksFunction = new lambda.Function(this, "allBooksFunction", {
+      functionName: "All-Books-Function-Simple-Book-Api",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("lambdas"),
+      handler: "allBooks.handler",
+      memorySize: 1024,
+      environment: {
+        TABLE_NAME_ALL: allBooksTable.tableName,
+      },
+    });
 
     // ********************************
     // ***  DynamoDB's Permissions  ***
     // ********************************
-    // Grant the Lambda function's read and write access to the DynamoDB table
+    // Grant the Lambda function's read and write access to the All books table
     allBooksTable.grantReadWriteData(addBooksFunction);
+    allBooksTable.grantReadWriteData(allBooksFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -85,6 +93,10 @@ export class SimpleBookApiStack extends Stack {
     const addBooksFunctionIntegration = new apigw.LambdaIntegration(
       addBooksFunction
     );
+    // Lambda integration for allBooks function
+    const allBooksFunctionIntegration = new apigw.LambdaIntegration(
+      allBooksFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
@@ -103,6 +115,13 @@ export class SimpleBookApiStack extends Stack {
     status.addMethod("GET", statusFunctionIntegration);
     // Method for  adding new book (POST:"/books")
     books.addMethod("POST", addBooksFunctionIntegration);
+    // Method for  listing all books (GET:"/books")
+    books.addMethod("GET", allBooksFunctionIntegration, {
+      requestParameters: {
+        "method.request.querystring.book_type": false,
+        "method.request.querystring.limit": false,
+      },
+    });
 
     // ********************************
     // *** CORS option for resource ***
