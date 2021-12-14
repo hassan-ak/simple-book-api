@@ -526,3 +526,63 @@ We can also add query parameters and when query parameters are given but book_ty
 Adding correct query parameters in correct format will return results as requested and one more thing any query other than book_type and limit will not be processed.
 
 ![Query prameters with request](./snaps/step05-05.PNG)
+
+### 6. Create resource to list one book
+
+Next step is to create a resource so we can get one book from the database. Update "lib/simple-book-api-stack.ts" to create a lambda function to get one book from database and grant read write permission for ddb table. Also create lambda integration and method. One thing to keep in mind GET method (with sub uri)is to be used here as we are getting data from ddb table. While defining lambda function need to define environment variables.
+
+```js
+const oneBookFunction = new lambda.Function(this, "oneBookFunction", {
+  functionName: "One-Book-Function-Simple-Book-Api",
+  runtime: lambda.Runtime.NODEJS_14_X,
+  code: lambda.Code.fromAsset("lambdas"),
+  handler: "oneBook.handler",
+  memorySize: 1024,
+  environment: {
+    PRIMARY_KEY_ALL: "bookID",
+    TABLE_NAME_ALL: allBooksTable.tableName,
+  },
+});
+allBooksTable.grantReadWriteData(oneBookFunction);
+const oneBookFunctionIntegration = new apigw.LambdaIntegration(oneBookFunction);
+const oneBook = books.addResource("{id}");
+oneBook.addMethod("GET", oneBookFunctionIntegration);
+addCorsOptions(oneBook);
+```
+
+Create "lambdas/oneBook.ts" to define the handler for oneBook function so one book can be listed from database. Need a book_id in request path.
+
+```js
+import * as AWS from "aws-sdk";
+const TABLE_NAME_ALL = process.env.TABLE_NAME_ALL || "";
+const PRIMARY_KEY_ALL = process.env.PRIMARY_KEY_ALL || "";
+const db = new AWS.DynamoDB.DocumentClient();
+export const handler = async (event: any = {}): Promise<any> => {
+  const requestedItemId = event.pathParameters.id;
+  const params = {
+    TableName: TABLE_NAME_ALL,
+    Key: {
+      [PRIMARY_KEY_ALL]: requestedItemId,
+    },
+  };
+  try {
+    const response = await db.get(params).promise();
+    // No books with requested ID
+    if (!response.Item) {
+      return {
+        statusCode: 200,
+        body: `{ "Message": "No book with requested ID - Try Again" }`,
+      };
+    }
+    // Book present in ddb with requested ID
+    return { statusCode: 200, body: JSON.stringify(response.Item) };
+  } catch (err) {
+    console.log("DynamoDB error: ", err);
+    return { statusCode: 500, body: err };
+  }
+};
+```
+
+Deploy the app using `cdk deploy` and then test it using postman.For testing create new GET request on postman with sub path `/books/:book_id`. If there is no book in the database with requested id a message telling about no book will be returned as in step05. And if book is present it will be returned.
+
+![Single book](./snaps/step06-01.PNG)
