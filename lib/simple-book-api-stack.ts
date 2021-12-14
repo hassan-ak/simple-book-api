@@ -62,6 +62,18 @@ export class SimpleBookApiStack extends Stack {
         TABLE_NAME_ALL: allBooksTable.tableName,
       },
     });
+    // Lambda function to list full details of a book
+    const oneBookFunction = new lambda.Function(this, "oneBookFunction", {
+      functionName: "One-Book-Function-Simple-Book-Api",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("lambdas"),
+      handler: "oneBook.handler",
+      memorySize: 1024,
+      environment: {
+        PRIMARY_KEY_ALL: "bookID",
+        TABLE_NAME_ALL: allBooksTable.tableName,
+      },
+    });
 
     // ********************************
     // ***  DynamoDB's Permissions  ***
@@ -69,6 +81,7 @@ export class SimpleBookApiStack extends Stack {
     // Grant the Lambda function's read and write access to the All books table
     allBooksTable.grantReadWriteData(addBooksFunction);
     allBooksTable.grantReadWriteData(allBooksFunction);
+    allBooksTable.grantReadWriteData(oneBookFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -97,6 +110,10 @@ export class SimpleBookApiStack extends Stack {
     const allBooksFunctionIntegration = new apigw.LambdaIntegration(
       allBooksFunction
     );
+    // Lambda integration for oneBook function
+    const oneBookFunctionIntegration = new apigw.LambdaIntegration(
+      oneBookFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
@@ -105,6 +122,8 @@ export class SimpleBookApiStack extends Stack {
     const status = api.root.addResource("status");
     // books resources
     const books = api.root.addResource("books");
+    // one book resources
+    const oneBook = books.addResource("{id}");
 
     // ********************************
     // ***      Methods on API      ***
@@ -122,12 +141,15 @@ export class SimpleBookApiStack extends Stack {
         "method.request.querystring.limit": false,
       },
     });
+    // Method for  listing one book (GET:"/books/:book_id")
+    oneBook.addMethod("GET", oneBookFunctionIntegration);
 
     // ********************************
     // *** CORS option for resource ***
     // ********************************
     addCorsOptions(status);
     addCorsOptions(books);
+    addCorsOptions(oneBook);
   }
 }
 
