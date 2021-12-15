@@ -62,7 +62,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>POST</td>
       <td rowspan=1>/books</td>
       <td rowspan=1></td>
-      <td rowspan=1>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book": "Book Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"author": "Authos's Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"isbn": "Book isbn",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book_type": "fiction/non-fiction",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"price": Book Price,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"stock": Number of books to be added,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"available": true<br>}</td>
+      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book": "Book Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"author": "Authos's Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"isbn": "Book isbn",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book_type": "fiction/non-fiction",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"price": Book Price,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"stock": Number of books to be added,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"available": true<br>}</sub></td>
       <td rowspan=1></td>
     </tr>
     <tr>
@@ -89,7 +89,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>POST</td>
       <td rowspan=1>/api-clients</td>
       <td rowspan=1></td>
-      <td rowspan=1>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"userName": "User's Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"userEmail": "User's Email"<br>}</td>
+      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"userName": "User's Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"userEmail": "User's Email"<br>}</sub></td>
       <td rowspan=1></td>
     </tr>
     <tr>
@@ -98,7 +98,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>POST</td>
       <td rowspan=1>/orders</td>
       <td rowspan=1>Bearer Token</td>
-      <td rowspan=1>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"bookID": "ID of Book to order",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No. of Books to Order"<br>}</td>
+      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"bookID": "ID of Book to order",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No. of Books to Order"<br>}</sub></td>
       <td rowspan=1></td>
     </tr>
     <tr>
@@ -134,7 +134,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>PATCH</td>
       <td rowspan=1>/orders/:orderID</td>
       <td rowspan=1>Bearer Token</td>
-      <td rowspan=1>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No of Books to order"<br>}</td>
+      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No of Books to order"<br>}</sub></td>
       <td rowspan=1></td>
     </tr>
   </tbody>
