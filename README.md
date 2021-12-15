@@ -62,7 +62,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>POST</td>
       <td rowspan=1>/books</td>
       <td rowspan=1>No</td>
-      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book": "Book Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"author": "Authos's Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"isbn": "Book isbn",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book_type": "fiction/non-fiction",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"price": Book Price,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"stock": Number of books to be added,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"available": true<br>}</sub></td>
+      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book": "Book Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"author": "Authos's Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"isbn": "Book isbn",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book_type": "type",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"price": Book Price,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"stock": Number of books,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"available": true<br>}</sub></td>
       <td rowspan=1></td>
     </tr>
     <tr>
@@ -72,7 +72,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>/books</td>
       <td rowspan=1>No</td>
       <td rowspan=1></td>
-      <td rowspan=1><sub>book_type : Optional<br>limit : Optional</sub></td>
+      <td rowspan=1><sub>book_type<br>limit</sub></td>
     </tr>
     <tr>
       <td rowspan=1>5</td>
@@ -98,7 +98,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>POST</td>
       <td rowspan=1>/orders</td>
       <td rowspan=1>Yes</td>
-      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"bookID": "ID of Book to order",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No. of Books to Order"<br>}</sub></td>
+      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"bookID": "ID of Book",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No. of Books"<br>}</sub></td>
       <td rowspan=1></td>
     </tr>
     <tr>
@@ -134,7 +134,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>PATCH</td>
       <td rowspan=1>/orders/:orderID</td>
       <td rowspan=1>Yes</td>
-      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No of Books to order"<br>}</sub></td>
+      <td rowspan=1><sub>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No of Books"<br>}</sub></td>
       <td rowspan=1></td>
     </tr>
   </tbody>
