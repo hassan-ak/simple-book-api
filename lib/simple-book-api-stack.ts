@@ -129,6 +129,19 @@ export class SimpleBookApiStack extends Stack {
         TABLE_NAME_ORDER: allOrdersTable.tableName,
       },
     });
+    // Lambda function to get one order
+    const oneOrderFunction = new lambda.Function(this, "oneOrderFunction", {
+      functionName: "One-Order-Function-Simple-Book-Api",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("lambdas"),
+      handler: "oneOrder.handler",
+      memorySize: 1024,
+      environment: {
+        TABLE_NAME_USER: usersTable.tableName,
+        TABLE_NAME_ORDER: allOrdersTable.tableName,
+        PRIMARY_KEY_ORDER: "orderID",
+      },
+    });
 
     // ********************************
     // ***  DynamoDB's Permissions  ***
@@ -142,9 +155,11 @@ export class SimpleBookApiStack extends Stack {
     usersTable.grantReadWriteData(userAuthFunction);
     usersTable.grantReadWriteData(placeOrderFunction);
     usersTable.grantReadWriteData(allOrdersFunction);
+    usersTable.grantReadWriteData(oneOrderFunction);
     // Grant the Lambda function's read and write access to the All orders table
     allOrdersTable.grantReadWriteData(placeOrderFunction);
     allOrdersTable.grantReadWriteData(allOrdersFunction);
+    allOrdersTable.grantReadWriteData(oneOrderFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -189,6 +204,10 @@ export class SimpleBookApiStack extends Stack {
     const allOrdersFunctionIntegration = new apigw.LambdaIntegration(
       allOrdersFunction
     );
+    // Lambda integration for oneOrder function
+    const oneOrderFunctionIntegration = new apigw.LambdaIntegration(
+      oneOrderFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
@@ -203,6 +222,8 @@ export class SimpleBookApiStack extends Stack {
     const userAuth = api.root.addResource("api-clients");
     // Orders resource
     const orders = api.root.addResource("orders");
+    // One Order resource
+    const oneOrder = orders.addResource("{id}");
 
     // ********************************
     // ***      Methods on API      ***
@@ -228,6 +249,8 @@ export class SimpleBookApiStack extends Stack {
     orders.addMethod("POST", placeOrderFunctionIntegration);
     // Method to list all orders
     orders.addMethod("GET", allOrdersFunctionIntegration);
+    // Method to list one order
+    oneOrder.addMethod("GET", oneOrderFunctionIntegration);
 
     // ********************************
     // *** CORS option for resource ***
@@ -237,6 +260,7 @@ export class SimpleBookApiStack extends Stack {
     addCorsOptions(oneBook);
     addCorsOptions(userAuth);
     addCorsOptions(orders);
+    addCorsOptions(oneOrder);
   }
 }
 
