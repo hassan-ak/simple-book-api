@@ -11,11 +11,19 @@ export class SimpleBookApiStack extends Stack {
     // ********************************
     // ***      DynamoDB Tables     ***
     // ********************************
-    // DynamoDB to display all books
+    // DynamoDB table to store all books
     const allBooksTable = new ddb.Table(this, "AllBooksTable", {
       tableName: "Simple_Book_Api_All_Books",
       partitionKey: {
         name: "bookID",
+        type: ddb.AttributeType.STRING,
+      },
+    });
+    // DynamoDB to store users
+    const usersTable = new ddb.Table(this, "UsersTable", {
+      tableName: "Simple_Book_Api_Users",
+      partitionKey: {
+        name: "userEmail",
         type: ddb.AttributeType.STRING,
       },
     });
@@ -74,6 +82,18 @@ export class SimpleBookApiStack extends Stack {
         TABLE_NAME_ALL: allBooksTable.tableName,
       },
     });
+    // Lambda function to register user
+    const userAuthFunction = new lambda.Function(this, "userAuthFunction", {
+      functionName: "User-Auth-Function-Simple-Book-Api",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("lambdas"),
+      handler: "userAuth.handler",
+      memorySize: 1024,
+      environment: {
+        PRIMARY_KEY_USER: "userEmail",
+        TABLE_NAME_USER: usersTable.tableName,
+      },
+    });
 
     // ********************************
     // ***  DynamoDB's Permissions  ***
@@ -82,6 +102,8 @@ export class SimpleBookApiStack extends Stack {
     allBooksTable.grantReadWriteData(addBooksFunction);
     allBooksTable.grantReadWriteData(allBooksFunction);
     allBooksTable.grantReadWriteData(oneBookFunction);
+    // Grant the Lambda function's read and write access to the All users table
+    usersTable.grantReadWriteData(userAuthFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -114,6 +136,10 @@ export class SimpleBookApiStack extends Stack {
     const oneBookFunctionIntegration = new apigw.LambdaIntegration(
       oneBookFunction
     );
+    // Lambda integration for userAuth function
+    const userAuthFunctionIntegration = new apigw.LambdaIntegration(
+      userAuthFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
@@ -124,6 +150,8 @@ export class SimpleBookApiStack extends Stack {
     const books = api.root.addResource("books");
     // one book resources
     const oneBook = books.addResource("{id}");
+    // User Auth resource
+    const userAuth = api.root.addResource("api-clients");
 
     // ********************************
     // ***      Methods on API      ***
@@ -132,17 +160,19 @@ export class SimpleBookApiStack extends Stack {
     api.root.addMethod("GET", welcomeFunctionIntegration);
     // Method for status path (GET:"/status")
     status.addMethod("GET", statusFunctionIntegration);
-    // Method for  adding new book (POST:"/books")
+    // Method for adding new book (POST:"/books")
     books.addMethod("POST", addBooksFunctionIntegration);
-    // Method for  listing all books (GET:"/books")
+    // Method for listing all books (GET:"/books")
     books.addMethod("GET", allBooksFunctionIntegration, {
       requestParameters: {
         "method.request.querystring.book_type": false,
         "method.request.querystring.limit": false,
       },
     });
-    // Method for  listing one book (GET:"/books/:book_id")
+    // Method for listing one book (GET:"/books/:book_id")
     oneBook.addMethod("GET", oneBookFunctionIntegration);
+    // Method to register user with api
+    userAuth.addMethod("POST", userAuthFunctionIntegration);
 
     // ********************************
     // *** CORS option for resource ***
@@ -150,6 +180,7 @@ export class SimpleBookApiStack extends Stack {
     addCorsOptions(status);
     addCorsOptions(books);
     addCorsOptions(oneBook);
+    addCorsOptions(userAuth);
   }
 }
 
