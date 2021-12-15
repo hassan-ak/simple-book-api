@@ -159,6 +159,23 @@ export class SimpleBookApiStack extends Stack {
         },
       }
     );
+    // Lambda fumction to update one order
+    const updateOneOrderFunction = new lambda.Function(
+      this,
+      "updateOneOrderFunction",
+      {
+        functionName: "Update-One-Order-Function-Simple-Book-Api",
+        runtime: lambda.Runtime.NODEJS_14_X,
+        code: lambda.Code.fromAsset("lambdas"),
+        handler: "updateOneOrder.handler",
+        memorySize: 1024,
+        environment: {
+          TABLE_NAME_USER: usersTable.tableName,
+          TABLE_NAME_ORDER: allOrdersTable.tableName,
+          PRIMARY_KEY_ORDER: "orderID",
+        },
+      }
+    );
 
     // ********************************
     // ***  DynamoDB's Permissions  ***
@@ -174,11 +191,13 @@ export class SimpleBookApiStack extends Stack {
     usersTable.grantReadWriteData(allOrdersFunction);
     usersTable.grantReadWriteData(oneOrderFunction);
     usersTable.grantReadWriteData(deleteOneOrderFunction);
+    usersTable.grantReadWriteData(updateOneOrderFunction);
     // Grant the Lambda function's read and write access to the All orders table
     allOrdersTable.grantReadWriteData(placeOrderFunction);
     allOrdersTable.grantReadWriteData(allOrdersFunction);
     allOrdersTable.grantReadWriteData(oneOrderFunction);
     allOrdersTable.grantReadWriteData(deleteOneOrderFunction);
+    allOrdersTable.grantReadWriteData(updateOneOrderFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -231,6 +250,10 @@ export class SimpleBookApiStack extends Stack {
     const deleteOneOrderFunctionIntegration = new apigw.LambdaIntegration(
       deleteOneOrderFunction
     );
+    // Lambda integration for UpdateOrder function
+    const updateOneOrderFunctionIntegration = new apigw.LambdaIntegration(
+      updateOneOrderFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
@@ -277,6 +300,9 @@ export class SimpleBookApiStack extends Stack {
     // Method to delete one order
     orders.addMethod("DELETE", deleteOneOrderFunctionIntegration);
     oneOrder.addMethod("DELETE", deleteOneOrderFunctionIntegration);
+    // Methods to update one order
+    orders.addMethod("PATCH", updateOneOrderFunctionIntegration);
+    oneOrder.addMethod("PATCH", updateOneOrderFunctionIntegration);
 
     // ********************************
     // *** CORS option for resource ***
