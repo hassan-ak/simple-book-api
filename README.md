@@ -1130,3 +1130,120 @@ Deploy the app using `cdk deploy`. Test all orders functionality by adding new G
 If there is no auth token or given with wrong configartion an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no order with provided Id or with given userID again message will be returned. These condotions are documented in above cases. If all conditions rae fullfilled results are as follows.
 
 ![One Order](./snaps/step10-01.PNG)
+
+### 11. Create resource to delete one order
+
+Next step is to create a resource so we can delete one order. Update "lib/simple-book-api-stack.ts" to create a lambda function to delete one order grant read write permission for ddb table. Also create lambda integration, resource and method. One thing to keep in mind DELETE method is to be used here as we are deleting data from ddb table. While defining lambda function need to define environment variables.
+
+```js
+const deleteOneOrderFunction = new lambda.Function(
+  this,
+  "deleteOneOrderFunction",
+  {
+    functionName: "Delete-One-Order-Function-Simple-Book-Api",
+    runtime: lambda.Runtime.NODEJS_14_X,
+    code: lambda.Code.fromAsset("lambdas"),
+    handler: "deleteOneOrder.handler",
+    memorySize: 1024,
+    environment: {
+      TABLE_NAME_USER: usersTable.tableName,
+      TABLE_NAME_ORDER: allOrdersTable.tableName,
+      PRIMARY_KEY_ORDER: "orderID",
+    },
+  }
+);
+usersTable.grantReadWriteData(deleteOneOrderFunction);
+allOrdersTable.grantReadWriteData(deleteOneOrderFunction);
+const deleteOneOrderFunctionIntegration = new apigw.LambdaIntegration(
+  deleteOneOrderFunction
+);
+placeOrder.addMethod("DELETE", deleteOneOrderFunctionIntegration);
+oneOrder.addMethod("DELETE", deleteOneOrderFunctionIntegration);
+```
+
+Create "lambdas/deleteOneOrder.ts" to define the handler for deleteOneOrder function so one order can be delete from database
+
+```js
+import * as AWS from "aws-sdk";
+const db = new AWS.DynamoDB.DocumentClient();
+const TABLE_NAME_USER = process.env.TABLE_NAME_USER || "";
+const TABLE_NAME_ORDER = process.env.TABLE_NAME_ORDER || "";
+const PRIMARY_KEY_ORDER = process.env.PRIMARY_KEY_ORDER || "";
+export const handler = async (event: any = {}): Promise<any> => {
+  if (
+    !event.headers.Authorization ||
+    !event.headers.Authorization.split(" ")[1]
+  ) {
+    return {
+      statusCode: 400,
+      body: `{ "Error": "Provide Authentication token" }`,
+    };
+  }
+  if (!event.pathParameters || !event.pathParameters.id) {
+    return {
+      statusCode: 400,
+      body: `{ "Error": "You are missing the path parameter id" }`,
+    };
+  }
+  const params1 = {
+    TableName: TABLE_NAME_USER,
+  };
+  try {
+    const response1 = await db.scan(params1).promise();
+    if (response1.Count === 0) {
+      return {
+        statusCode: 200,
+        body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
+      };
+    }
+    if (
+      response1.Items &&
+      response1.Items.filter(
+        (userItem) =>
+          userItem.user_ID === event.headers.Authorization.split(" ")[1]
+      ).length === 0
+    ) {
+      return {
+        statusCode: 200,
+        body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
+      };
+    }
+    const requestedItemId = event.pathParameters.id;
+    const params2 = {
+      TableName: TABLE_NAME_ORDER,
+      Key: {
+        [PRIMARY_KEY_ORDER]: requestedItemId,
+      },
+    };
+    const response2 = await db.get(params2).promise();
+    if (!response2.Item) {
+      return {
+        statusCode: 200,
+        body: `{ "Error": "No Order with requested ID - Try Again" }`,
+      };
+    }
+    if (
+      response2.Item &&
+      response2.Item.user_ID === event.headers.Authorization.split(" ")[1]
+    ) {
+      await db.delete(params2).promise();
+      return {
+        statusCode: 200,
+        body: `{ "Message": "Requested Order deleted" }`,
+      };
+    } else {
+      return {
+        statusCode: 200,
+        body: `{ "Error": "No Order with requested ID - Try Again" }`,
+      };
+    }
+  } catch (err) {
+    console.log("DynamoDB error: ", err);
+    return { statusCode: 500, body: err };
+  }
+};
+```
+
+Deploy the app using `cdk deploy`. Test all orders functionality by adding new DELETE request with `/orders/:orderID` to get one order.
+If there is no auth token or given with wrong configartion or no path id an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no order with provided Id or with given userID again message will be returned. These condotions are documented in above cases. If all conditions rae fullfilled results are as follows.
+![Delete One Order](./snaps/step11-01.PNG)
