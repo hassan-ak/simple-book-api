@@ -117,6 +117,18 @@ export class SimpleBookApiStack extends Stack {
         TABLE_NAME_ORDER: allOrdersTable.tableName,
       },
     });
+    // Lambda function to list all orders
+    const allOrdersFunction = new lambda.Function(this, "allOrdersFunction", {
+      functionName: "All-Orders-Function-Simple-Book-Api",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("lambdas"),
+      handler: "allOrders.handler",
+      memorySize: 1024,
+      environment: {
+        TABLE_NAME_USER: usersTable.tableName,
+        TABLE_NAME_ORDER: allOrdersTable.tableName,
+      },
+    });
 
     // ********************************
     // ***  DynamoDB's Permissions  ***
@@ -129,8 +141,10 @@ export class SimpleBookApiStack extends Stack {
     // Grant the Lambda function's read and write access to the All users table
     usersTable.grantReadWriteData(userAuthFunction);
     usersTable.grantReadWriteData(placeOrderFunction);
+    usersTable.grantReadWriteData(allOrdersFunction);
     // Grant the Lambda function's read and write access to the All orders table
     allOrdersTable.grantReadWriteData(placeOrderFunction);
+    allOrdersTable.grantReadWriteData(allOrdersFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -171,6 +185,10 @@ export class SimpleBookApiStack extends Stack {
     const placeOrderFunctionIntegration = new apigw.LambdaIntegration(
       placeOrderFunction
     );
+    // Lambda integration for allOrders function
+    const allOrdersFunctionIntegration = new apigw.LambdaIntegration(
+      allOrdersFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
@@ -208,6 +226,8 @@ export class SimpleBookApiStack extends Stack {
     userAuth.addMethod("POST", userAuthFunctionIntegration);
     // Method to place order
     orders.addMethod("POST", placeOrderFunctionIntegration);
+    // Method to list all orders
+    orders.addMethod("GET", allOrdersFunctionIntegration);
 
     // ********************************
     // *** CORS option for resource ***
