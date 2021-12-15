@@ -15,9 +15,15 @@ By doing this project we are able to learn following:-
   - Post request
     - Request body
   - User Auth
+  - Delete Request
+  - Patch Request
 - How to create DynamoDB table
   - Put data in table
   - Scan table for data
+  - Delete data from table
+  - Update data in table
+
+## Usage
 
 ## Steps to code "Simple Book API"
 
@@ -1247,3 +1253,158 @@ export const handler = async (event: any = {}): Promise<any> => {
 Deploy the app using `cdk deploy`. Test all orders functionality by adding new DELETE request with `/orders/:orderID` to get one order.
 If there is no auth token or given with wrong configartion or no path id an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no order with provided Id or with given userID again message will be returned. These condotions are documented in above cases. If all conditions rae fullfilled results are as follows.
 ![Delete One Order](./snaps/step11-01.PNG)
+
+### 12. Create resource to update one order
+
+Next step is to create a resource so we can update one order. Update "lib/simple-book-api-stack.ts" to create a lambda function to update one order grant read write permission for ddb table. Also create lambda integration, resource and method. One thing to keep in mind PATCH method is to be used here as we are updating data from ddb table. While defining lambda function need to define environment variables.
+
+```js
+const updateOneOrderFunction = new lambda.Function(
+  this,
+  "updateOneOrderFunction",
+  {
+    functionName: "Update-One-Order-Function-Simple-Book-Api",
+    runtime: lambda.Runtime.NODEJS_14_X,
+    code: lambda.Code.fromAsset("lambdas"),
+    handler: "updateOneOrder.handler",
+    memorySize: 1024,
+    environment: {
+      TABLE_NAME_USER: usersTable.tableName,
+      TABLE_NAME_ORDER: allOrdersTable.tableName,
+      PRIMARY_KEY_ORDER: "orderID",
+    },
+  }
+);
+usersTable.grantReadWriteData(updateOneOrderFunction);
+allOrdersTable.grantReadWriteData(updateOneOrderFunction);
+const updateOneOrderFunctionIntegration = new apigw.LambdaIntegration(
+  updateOneOrderFunction
+);
+orders.addMethod("PATCH", updateOneOrderFunctionIntegration);
+oneOrder.addMethod("PATCH", updateOneOrderFunctionIntegration);
+```
+
+Create "lambdas/deleteOneOrder.ts" to define the handler for deleteOneOrder function so one order can be delete from database
+
+```js
+import * as AWS from "aws-sdk";
+const db = new AWS.DynamoDB.DocumentClient();
+const TABLE_NAME_USER = process.env.TABLE_NAME_USER || "";
+const TABLE_NAME_ORDER = process.env.TABLE_NAME_ORDER || "";
+const PRIMARY_KEY_ORDER = process.env.PRIMARY_KEY_ORDER || "";
+export const handler = async (event: any = {}): Promise<any> => {
+  if (
+    !event.headers.Authorization ||
+    !event.headers.Authorization.split(" ")[1]
+  ) {
+    return {
+      statusCode: 400,
+      body: `{ "Error": "Provide Authentication token" }`,
+    };
+  }
+  if (!event.body || Object.keys(JSON.parse(event.body)).length >= 2) {
+    return {
+      statusCode: 400,
+      body: `Invalid Request, You are missing the parameter body or giving too many parameters. Give parameters in the following format.\n {
+        "noOfBooks": "No of Books to order"
+        }`,
+    };
+  }
+  const item =
+    typeof event.body == "object" ? event.body : JSON.parse(event.body);
+  if (
+    !item.noOfBooks ||
+    isNaN(item.noOfBooks) ||
+    !Number.isInteger(item.noOfBooks) ||
+    item.noOfBooks < 1
+  ) {
+    return {
+      statusCode: 400,
+      body: `Invalid Request, Give No. of books to order in the following format.\n{
+          "noOfBooks": "No of Books to order"
+        }`,
+    };
+  }
+  if (!event.pathParameters || !event.pathParameters.id) {
+    return {
+      statusCode: 400,
+      body: `{ "Error": "You are missing the path parameter id" }`,
+    };
+  }
+  const params1 = {
+    TableName: TABLE_NAME_USER,
+  };
+  const response1 = await db.scan(params1).promise();
+  if (response1.Count === 0) {
+    return {
+      statusCode: 200,
+      body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
+    };
+  }
+  if (
+    response1.Items &&
+    response1.Items.filter(
+      (userItem) =>
+        userItem.user_ID === event.headers.Authorization.split(" ")[1]
+    ).length === 0
+  ) {
+    return {
+      statusCode: 200,
+      body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
+    };
+  }
+  const requestedItemId = event.pathParameters.id;
+  const editedItemProperties = Object.keys(item);
+  const firstProperty = editedItemProperties.splice(0, 1);
+  const params2: any = {
+    TableName: TABLE_NAME_ORDER,
+    Key: {
+      [PRIMARY_KEY_ORDER]: requestedItemId,
+    },
+    UpdateExpression: `set ${firstProperty} = :${firstProperty}`,
+    ExpressionAttributeValues: {},
+    ReturnValues: "UPDATED_NEW",
+  };
+  params2.ExpressionAttributeValues[`:${firstProperty}`] =
+    item[`${firstProperty}`];
+  editedItemProperties.forEach((property) => {
+    params2.UpdateExpression += `, ${property} = :${property}`;
+    params2.ExpressionAttributeValues[`:${property}`] = item[property];
+  });
+  const response2 = await db.get(params2).promise();
+  if (!response2.Item) {
+    return {
+      statusCode: 400,
+      body: `{ "Error": "No Order with requested ID - Try Again" }`,
+    };
+  }
+  try {
+    if (
+      response2.Item &&
+      response2.Item.user_ID === event.headers.Authorization.split(" ")[1]
+    ) {
+      await db.update(params2).promise();
+      return {
+        statusCode: 200,
+        body: `{ "Message": "Order Updated" }`,
+      };
+    } else {
+      return {
+        statusCode: 200,
+        body: `{ "Error": "No Order with requested ID - Try Again" }`,
+      };
+    }
+  } catch (error) {
+    return { statusCode: 500, body: error };
+  }
+};
+```
+
+Deploy the app using `cdk deploy`. Test all orders functionality by adding new PATCH request with `/orders/:orderID` to get one order.
+If there is no auth token or given with wrong configartion or no path id or wrong format in body an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no order with provided Id or with given userID again message will be returned. These condotions are documented in above cases. If all conditions rae fullfilled results are as follows.
+
+![Delete One Order](./snaps/step12-01.PNG)
+
+## Reading Material
+
+- [Simple Book Api](https://github.com/vdespa/introduction-to-postman-course/blob/main/simple-books-api.md)
