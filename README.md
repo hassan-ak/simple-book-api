@@ -34,7 +34,7 @@ By doing this project we are able to learn following:-
       <th>Path</th>
       <th>Auth.</th>
       <th>Request Body</th>
-      <th>Query Parameters</th>
+      <th>Query</th>
     </tr>
   </thead>
   <tbody>
@@ -72,7 +72,7 @@ By doing this project we are able to learn following:-
       <td rowspan=1>/books</td>
       <td rowspan=1>No</td>
       <td rowspan=1></td>
-      <td rowspan=1>book_type : Optional<br>limit : Optional</td>
+      <td rowspan=1><sub>book_type : Optional<br>limit : Optional</sub></td>
     </tr>
     <tr>
       <td rowspan=1>5</td>
