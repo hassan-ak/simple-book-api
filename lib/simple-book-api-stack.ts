@@ -142,6 +142,23 @@ export class SimpleBookApiStack extends Stack {
         PRIMARY_KEY_ORDER: "orderID",
       },
     });
+    // Lambda function to delete one order
+    const deleteOneOrderFunction = new lambda.Function(
+      this,
+      "deleteOneOrderFunction",
+      {
+        functionName: "Delete-One-Order-Function-Simple-Book-Api",
+        runtime: lambda.Runtime.NODEJS_14_X,
+        code: lambda.Code.fromAsset("lambdas"),
+        handler: "deleteOneOrder.handler",
+        memorySize: 1024,
+        environment: {
+          TABLE_NAME_USER: usersTable.tableName,
+          TABLE_NAME_ORDER: allOrdersTable.tableName,
+          PRIMARY_KEY_ORDER: "orderID",
+        },
+      }
+    );
 
     // ********************************
     // ***  DynamoDB's Permissions  ***
@@ -156,10 +173,12 @@ export class SimpleBookApiStack extends Stack {
     usersTable.grantReadWriteData(placeOrderFunction);
     usersTable.grantReadWriteData(allOrdersFunction);
     usersTable.grantReadWriteData(oneOrderFunction);
+    usersTable.grantReadWriteData(deleteOneOrderFunction);
     // Grant the Lambda function's read and write access to the All orders table
     allOrdersTable.grantReadWriteData(placeOrderFunction);
     allOrdersTable.grantReadWriteData(allOrdersFunction);
     allOrdersTable.grantReadWriteData(oneOrderFunction);
+    allOrdersTable.grantReadWriteData(deleteOneOrderFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -208,6 +227,10 @@ export class SimpleBookApiStack extends Stack {
     const oneOrderFunctionIntegration = new apigw.LambdaIntegration(
       oneOrderFunction
     );
+    // Lambda integartion for deleteOrder function
+    const deleteOneOrderFunctionIntegration = new apigw.LambdaIntegration(
+      deleteOneOrderFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
@@ -251,6 +274,9 @@ export class SimpleBookApiStack extends Stack {
     orders.addMethod("GET", allOrdersFunctionIntegration);
     // Method to list one order
     oneOrder.addMethod("GET", oneOrderFunctionIntegration);
+    // Method to delete one order
+    orders.addMethod("DELETE", deleteOneOrderFunctionIntegration);
+    oneOrder.addMethod("DELETE", deleteOneOrderFunctionIntegration);
 
     // ********************************
     // *** CORS option for resource ***
