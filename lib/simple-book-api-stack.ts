@@ -19,11 +19,19 @@ export class SimpleBookApiStack extends Stack {
         type: ddb.AttributeType.STRING,
       },
     });
-    // DynamoDB to store users
+    // DynamoDB table to store users
     const usersTable = new ddb.Table(this, "UsersTable", {
       tableName: "Simple_Book_Api_Users",
       partitionKey: {
         name: "userEmail",
+        type: ddb.AttributeType.STRING,
+      },
+    });
+    // DynamoDB table to store orders
+    const allOrdersTable = new ddb.Table(this, "AllOrdersTable", {
+      tableName: "Simple_Book_Api_All_Orders",
+      partitionKey: {
+        name: "orderID",
         type: ddb.AttributeType.STRING,
       },
     });
@@ -94,6 +102,21 @@ export class SimpleBookApiStack extends Stack {
         TABLE_NAME_USER: usersTable.tableName,
       },
     });
+    // Lambda function to place order
+    const placeOrderFunction = new lambda.Function(this, "placeOrderFunction", {
+      functionName: "Place-Order-Function-Simple-Book-Api",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("lambdas"),
+      handler: "placeOrder.handler",
+      memorySize: 1024,
+      environment: {
+        TABLE_NAME_USER: usersTable.tableName,
+        PRIMARY_KEY_ALL: "bookID",
+        TABLE_NAME_ALL: allBooksTable.tableName,
+        PRIMARY_KEY_ORDER: "orderID",
+        TABLE_NAME_ORDER: allOrdersTable.tableName,
+      },
+    });
 
     // ********************************
     // ***  DynamoDB's Permissions  ***
@@ -102,8 +125,12 @@ export class SimpleBookApiStack extends Stack {
     allBooksTable.grantReadWriteData(addBooksFunction);
     allBooksTable.grantReadWriteData(allBooksFunction);
     allBooksTable.grantReadWriteData(oneBookFunction);
+    allBooksTable.grantReadWriteData(placeOrderFunction);
     // Grant the Lambda function's read and write access to the All users table
     usersTable.grantReadWriteData(userAuthFunction);
+    usersTable.grantReadWriteData(placeOrderFunction);
+    // Grant the Lambda function's read and write access to the All orders table
+    allOrdersTable.grantReadWriteData(placeOrderFunction);
 
     // ********************************
     // ***         Rest API         ***
@@ -140,6 +167,10 @@ export class SimpleBookApiStack extends Stack {
     const userAuthFunctionIntegration = new apigw.LambdaIntegration(
       userAuthFunction
     );
+    // Lambda integration for placeOrder function
+    const placeOrderFunctionIntegration = new apigw.LambdaIntegration(
+      placeOrderFunction
+    );
 
     // ********************************
     // ***     Resources of API     ***
@@ -152,6 +183,8 @@ export class SimpleBookApiStack extends Stack {
     const oneBook = books.addResource("{id}");
     // User Auth resource
     const userAuth = api.root.addResource("api-clients");
+    // Orders resource
+    const orders = api.root.addResource("orders");
 
     // ********************************
     // ***      Methods on API      ***
@@ -173,6 +206,8 @@ export class SimpleBookApiStack extends Stack {
     oneBook.addMethod("GET", oneBookFunctionIntegration);
     // Method to register user with api
     userAuth.addMethod("POST", userAuthFunctionIntegration);
+    // Method to place order
+    orders.addMethod("POST", placeOrderFunctionIntegration);
 
     // ********************************
     // *** CORS option for resource ***
@@ -181,6 +216,7 @@ export class SimpleBookApiStack extends Stack {
     addCorsOptions(books);
     addCorsOptions(oneBook);
     addCorsOptions(userAuth);
+    addCorsOptions(orders);
   }
 }
 
