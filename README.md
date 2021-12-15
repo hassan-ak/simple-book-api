@@ -25,6 +25,121 @@ By doing this project we are able to learn following:-
 
 ## Usage
 
+<table>
+  <thead>
+    <tr>
+      <th>Sr. No.</th>
+      <th>Description</th>
+      <th>Method</th>
+      <th>Path</th>
+      <th>Authentication</th>
+      <th>Request Body</th>
+      <th>Query Parameters</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan=1>1</td>
+      <td rowspan=1>API base URL</td>
+      <td rowspan=1>GET</td>
+      <td rowspan=1>/</td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>2</td>
+      <td rowspan=1>Check Status of API</td>
+      <td rowspan=1>GET</td>
+      <td rowspan=1>/status</td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>3</td>
+      <td rowspan=1>Add book</td>
+      <td rowspan=1>POST</td>
+      <td rowspan=1>/books</td>
+      <td rowspan=1></td>
+      <td rowspan=1>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book": "Book Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"author": "Authos's Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"isbn": "Book isbn",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"book_type": "fiction/non-fiction",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"price": Book Price,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"stock": Number of books to be added,<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"available": true<br>}</td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>4</td>
+      <td rowspan=1>Get all books</td>
+      <td rowspan=1>GET</td>
+      <td rowspan=1>/books</td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+      <td rowspan=1>book_type : Optional<br>limit : Optional</td>
+    </tr>
+    <tr>
+      <td rowspan=1>5</td>
+      <td rowspan=1>Get one book</td>
+      <td rowspan=1>GET</td>
+      <td rowspan=1>/books/:bookID</td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>6</td>
+      <td rowspan=1>Register User</td>
+      <td rowspan=1>POST</td>
+      <td rowspan=1>/api-clients</td>
+      <td rowspan=1></td>
+      <td rowspan=1>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"userName": "User's Name",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"userEmail": "User's Email"<br>}</td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>7</td>
+      <td rowspan=1>Place Order</td>
+      <td rowspan=1>POST</td>
+      <td rowspan=1>/orders</td>
+      <td rowspan=1>Bearer Token</td>
+      <td rowspan=1>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"bookID": "ID of Book to order",<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No. of Books to Order"<br>}</td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>8</td>
+      <td rowspan=1>Get all Orders</td>
+      <td rowspan=1>GET</td>
+      <td rowspan=1>/orders</td>
+      <td rowspan=1>Bearer Token</td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>9</td>
+      <td rowspan=1>Get one Order</td>
+      <td rowspan=1>GET</td>
+      <td rowspan=1>/orders/:orderID</td>
+      <td rowspan=1>Bearer Token</td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>10</td>
+      <td rowspan=1>Delete an Order</td>
+      <td rowspan=1>DELETE</td>
+      <td rowspan=1>/orders/:orderID</td>
+      <td rowspan=1>Bearer Token</td>
+      <td rowspan=1></td>
+      <td rowspan=1></td>
+    </tr>
+    <tr>
+      <td rowspan=1>11</td>
+      <td rowspan=1>Update an Order</td>
+      <td rowspan=1>PATCH</td>
+      <td rowspan=1>/orders/:orderID</td>
+      <td rowspan=1>Bearer Token</td>
+      <td rowspan=1>{<br>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"noOfBooks": "No of Books to order"<br>}</td>
+      <td rowspan=1></td>
+    </tr>
+  </tbody>
+</table>
+
 ## Steps to code "Simple Book API"
 
 ### 1. Create a basic cdk app
