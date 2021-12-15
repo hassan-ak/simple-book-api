@@ -11,10 +11,13 @@ By doing this project we are able to learn following:-
   - Add methods
 - Test REST API using postman
   - Get request
+    - Request Parameters
   - Post request
     - Request body
+  - User Auth
 - How to create DynamoDB table
   - Put data in table
+  - Scan table for data
 
 ## Steps to code "Simple Book API"
 
@@ -902,3 +905,119 @@ If there is no book with provided Id following message will be recieved
 While successful execution will place the order
 
 ![Order Placed](./snaps/step08-05.PNG)
+
+### 9. Create resource to list all orders
+
+Next step is to create a resource so we can list aall orders. Update "lib/simple-book-api-stack.ts" to create a lambda function to get all orders grant read write permission for ddb table. Also create lambda integration, resource and method. One thing to keep in mind GET method is to be used here as we are getting data from ddb table. While defining lambda function need to define environment variables.
+
+```js
+const allOrdersFunction = new lambda.Function(this, "allOrdersFunction", {
+  functionName: "All-Orders-Function-Simple-Book-Api",
+  runtime: lambda.Runtime.NODEJS_14_X,
+  code: lambda.Code.fromAsset("lambdas"),
+  handler: "allOrders.handler",
+  memorySize: 1024,
+  environment: {
+    TABLE_NAME_USER: usersTable.tableName,
+    TABLE_NAME_ORDER: allOrdersTable.tableName,
+  },
+});
+usersTable.grantReadWriteData(allOrdersFunction);
+allOrdersTable.grantReadWriteData(allOrdersFunction);
+const allOrdersFunctionIntegration = new apigw.LambdaIntegration(
+  allOrdersFunction
+);
+orders.addMethod("GET", allOrdersFunctionIntegration);
+```
+
+Create "lambdas/allOrders.ts" to define the handler for allOrder function so all orders can be scanned
+
+```js
+import * as AWS from "aws-sdk";
+const db = new AWS.DynamoDB.DocumentClient();
+
+const TABLE_NAME_USER = process.env.TABLE_NAME_USER || "";
+const TABLE_NAME_ORDER = process.env.TABLE_NAME_ORDER || "";
+
+export async function handler(event: any) {
+  if (
+    !event.headers.Authorization ||
+    !event.headers.Authorization.split(" ")[1]
+  ) {
+    return {
+      statusCode: 400,
+      body: `{ "Error": "Provide Authentication token" }`,
+    };
+  }
+  const params1 = {
+    TableName: TABLE_NAME_USER,
+  };
+  try {
+    const response = await db.scan(params1).promise();
+    if (response.Count === 0) {
+      return {
+        statusCode: 200,
+        body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
+      };
+    }
+    if (
+      response.Items &&
+      response.Items.filter(
+        (userItem) =>
+          userItem.user_ID === event.headers.Authorization.split(" ")[1]
+      ).length === 0
+    ) {
+      return {
+        statusCode: 200,
+        body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
+      };
+    }
+    const params2 = {
+      TableName: TABLE_NAME_ORDER,
+      ProjectionExpression: "user_ID, orderID, book, noOfBooks",
+    };
+    const response2 = await db.scan(params2).promise();
+    if (response2.Count === 0) {
+      return {
+        statusCode: 200,
+        body: `{ "message": "Currently No orders in place" }`,
+      };
+    }
+    if (
+      response2.Items &&
+      response2.Items.filter(
+        (orderItem) =>
+          orderItem.user_ID === event.headers.Authorization.split(" ")[1]
+      ).length === 0
+    ) {
+      return {
+        statusCode: 200,
+        body: `{ "message": "Currently No orders in place" }`,
+      };
+    }
+    if (response2.Items) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify(
+          response2.Items.filter(
+            (orderItem) =>
+              orderItem.user_ID === event.headers.Authorization.split(" ")[1]
+          )
+        ),
+      };
+    } else {
+      return {
+        statusCode: 200,
+        body: `{ "message": "Currently No orders in place" }`,
+      };
+    }
+  } catch (error) {
+    return { statusCode: 500, body: error };
+  }
+}
+```
+
+Deploy the app using `cdk deploy`. Test all orders functionality by adding new GET request with `/orders` to get all orders.
+If there is no auth token or given with wrong configartion an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no order with provided Id or with given userID again message will be returned. These condotions are documented in above cases. If all conditions rae fullfilled results are as follows.
+
+![All Orders](./snaps/step09-01.PNG)
