@@ -32,7 +32,7 @@ By doing this project we are able to learn following:-
       <th>Description</th>
       <th>Method</th>
       <th>Path</th>
-      <th>Authentication Required</th>
+      <th>Auth.</th>
       <th>Request Body</th>
       <th>Query Parameters</th>
     </tr>
