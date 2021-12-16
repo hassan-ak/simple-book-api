@@ -5,9 +5,6 @@ export async function handler() {
       body: `{ "message": "Welcome to Simple Book API" }`,
     };
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: `{ "Error": "Error with Simple Book API - Try again later" }`,
-    };
+    return { statusCode: 500, body: error };
   }
 }
