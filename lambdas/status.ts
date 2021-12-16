@@ -5,9 +5,6 @@ export async function handler() {
       body: `{ "Status": "Success" }`,
     };
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: `{ "Status": "Failure - Try again later" }`,
-    };
+    return { statusCode: 500, body: error };
   }
 }
