@@ -422,230 +422,25 @@ If there is no book with provided Id a message will be returned as the one in st
 
 ![Order Placed](./snaps/step0804.PNG)
 
-### 9. Create resource to list all orders
+### 9. Create method to list all orders
 
-Next step is to create a resource so we can list aall orders. Update "lib/simple-book-api-stack.ts" to create a lambda function to get all orders grant read write permission for ddb table. Also create lambda integration, resource and method. One thing to keep in mind GET method is to be used here as we are getting data from ddb table. While defining lambda function need to define environment variables.
+Create a method so we can list all orders. Update "lib/simple-book-api-stack.ts" to create a lambda function to get all orders grant read write permission for ddb table. Also create lambda integration, and method. One thing to keep in mind GET method is to be used here as we are getting data from ddb table. While defining lambda function need to define environment variables. Create "lambdas/allOrders.ts" to define the handler for allOrder function so all orders can be scanned. In handler code do some checks such as if bearer token is provided or not for authantication, check if users are registered in database and said user is in database. check if there are orders in the table and also check if orders are placed by current user. If all conditions are fulfilled list all orders. Deploy the app using `cdk deploy`.
 
-```js
-const allOrdersFunction = new lambda.Function(this, "allOrdersFunction", {
-  functionName: "All-Orders-Function-Simple-Book-Api",
-  runtime: lambda.Runtime.NODEJS_14_X,
-  code: lambda.Code.fromAsset("lambdas"),
-  handler: "allOrders.handler",
-  memorySize: 1024,
-  environment: {
-    TABLE_NAME_USER: usersTable.tableName,
-    TABLE_NAME_ORDER: allOrdersTable.tableName,
-  },
-});
-usersTable.grantReadWriteData(allOrdersFunction);
-allOrdersTable.grantReadWriteData(allOrdersFunction);
-const allOrdersFunctionIntegration = new apigw.LambdaIntegration(
-  allOrdersFunction
-);
-orders.addMethod("GET", allOrdersFunctionIntegration);
-```
+Test all orders functionality by adding new GET request with `/orders` to get all orders. If there is no auth token or given with wrong configartion an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no orders in list or with given userID again message will be returned.
 
-Create "lambdas/allOrders.ts" to define the handler for allOrder function so all orders can be scanned
+![All Orders](./snaps/step0901.PNG)
 
-```js
-import * as AWS from "aws-sdk";
-const db = new AWS.DynamoDB.DocumentClient();
+If all conditions are fullfilled results are as follows.
 
-const TABLE_NAME_USER = process.env.TABLE_NAME_USER || "";
-const TABLE_NAME_ORDER = process.env.TABLE_NAME_ORDER || "";
-
-export async function handler(event: any) {
-  if (
-    !event.headers.Authorization ||
-    !event.headers.Authorization.split(" ")[1]
-  ) {
-    return {
-      statusCode: 400,
-      body: `{ "Error": "Provide Authentication token" }`,
-    };
-  }
-  const params1 = {
-    TableName: TABLE_NAME_USER,
-  };
-  try {
-    const response = await db.scan(params1).promise();
-    if (response.Count === 0) {
-      return {
-        statusCode: 200,
-        body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
-      };
-    }
-    if (
-      response.Items &&
-      response.Items.filter(
-        (userItem) =>
-          userItem.user_ID === event.headers.Authorization.split(" ")[1]
-      ).length === 0
-    ) {
-      return {
-        statusCode: 200,
-        body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
-      };
-    }
-    const params2 = {
-      TableName: TABLE_NAME_ORDER,
-      ProjectionExpression: "user_ID, orderID, book, noOfBooks",
-    };
-    const response2 = await db.scan(params2).promise();
-    if (response2.Count === 0) {
-      return {
-        statusCode: 200,
-        body: `{ "message": "Currently No orders in place" }`,
-      };
-    }
-    if (
-      response2.Items &&
-      response2.Items.filter(
-        (orderItem) =>
-          orderItem.user_ID === event.headers.Authorization.split(" ")[1]
-      ).length === 0
-    ) {
-      return {
-        statusCode: 200,
-        body: `{ "message": "Currently No orders in place" }`,
-      };
-    }
-    if (response2.Items) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify(
-          response2.Items.filter(
-            (orderItem) =>
-              orderItem.user_ID === event.headers.Authorization.split(" ")[1]
-          )
-        ),
-      };
-    } else {
-      return {
-        statusCode: 200,
-        body: `{ "message": "Currently No orders in place" }`,
-      };
-    }
-  } catch (error) {
-    return { statusCode: 500, body: error };
-  }
-}
-```
-
-Deploy the app using `cdk deploy`. Test all orders functionality by adding new GET request with `/orders` to get all orders.
-If there is no auth token or given with wrong configartion an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no order with provided Id or with given userID again message will be returned. These condotions are documented in above cases. If all conditions rae fullfilled results are as follows.
-
-![All Orders](./snaps/step09-01.PNG)
+![All Orders](./snaps/step0902.PNG)
 
 ### 10. Create resource to list one order
 
-Next step is to create a resource so we can list one order. Update "lib/simple-book-api-stack.ts" to create a lambda function to get one order grant read write permission for ddb table. Also create lambda integration, resource and method. One thing to keep in mind GET method is to be used here as we are getting data from ddb table. While defining lambda function need to define environment variables.
+Create a method so we can list one order. Update "lib/simple-book-api-stack.ts" to create a lambda function to get one order grant read write permission for ddb table. Also create lambda integration, resource and method. One thing to keep in mind GET method is to be used here as we are getting data from ddb table. While defining lambda function need to define environment variables. Create "lambdas/oneOrder.ts" to define the handler for oneOrder function so one orders can be obtained. In handler code do some checks such as if bearer token is provided or not for authantication, check if users are registered in database and said user is in database. check if there are orders in the table and also check if order is placed by current user. If all conditions are fulfilled list requested order. Deploy the app using `cdk deploy`.
+Test all orders functionality by adding new GET request with `/orders/:orderID` to get one order.
+If there is no auth token or given with wrong configartion an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no order with provided Id or with given userID again message will be returned. These condotions are documented in above cases. If all conditions are fullfilled result will be as follows.
 
-```js
-const oneOrderFunction = new lambda.Function(this, "oneOrderFunction", {
-  functionName: "One-Order-Function-Simple-Book-Api",
-  runtime: lambda.Runtime.NODEJS_14_X,
-  code: lambda.Code.fromAsset("lambdas"),
-  handler: "oneOrder.handler",
-  memorySize: 1024,
-  environment: {
-    TABLE_NAME_USER: usersTable.tableName,
-    TABLE_NAME_ORDER: allOrdersTable.tableName,
-    PRIMARY_KEY_ORDER: "orderID",
-  },
-});
-usersTable.grantReadWriteData(oneOrderFunction);
-allOrdersTable.grantReadWriteData(oneOrderFunction);
-const oneOrderFunctionIntegration = new apigw.LambdaIntegration(
-  oneOrderFunction
-);
-const oneOrder = orders.addResource("{id}");
-oneOrder.addMethod("GET", oneOrderFunctionIntegration);
-addCorsOptions(oneOrder);
-```
-
-Create "lambdas/oneOrder.ts" to define the handler for oneOrder function so one order can be obtained from database
-
-```js
-import * as AWS from "aws-sdk";
-const db = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME_USER = process.env.TABLE_NAME_USER || "";
-const TABLE_NAME_ORDER = process.env.TABLE_NAME_ORDER || "";
-const PRIMARY_KEY_ORDER = process.env.PRIMARY_KEY_ORDER || "";
-export async function handler(event: any) {
-  if (
-    !event.headers.Authorization ||
-    !event.headers.Authorization.split(" ")[1]
-  ) {
-    return {
-      statusCode: 400,
-      body: `{ "Error": "Provide Authentication token" }`,
-    };
-  }
-  const params1 = {
-    TableName: TABLE_NAME_USER,
-  };
-  try {
-    const response = await db.scan(params1).promise();
-    if (response.Count === 0) {
-      return {
-        statusCode: 200,
-        body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
-      };
-    }
-    if (
-      response.Items &&
-      response.Items.filter(
-        (userItem) =>
-          userItem.user_ID === event.headers.Authorization.split(" ")[1]
-      ).length === 0
-    ) {
-      return {
-        statusCode: 200,
-        body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
-      };
-    }
-    const requestedItemId = event.pathParameters.id;
-
-    const params2 = {
-      TableName: TABLE_NAME_ORDER,
-      Key: {
-        [PRIMARY_KEY_ORDER]: requestedItemId,
-      },
-    };
-    const response2 = await db.get(params2).promise();
-    if (!response2.Item) {
-      return {
-        statusCode: 200,
-        body: `{ "Error": "No Order with requested ID - Try Again" }`,
-      };
-    }
-    if (
-      response2.Item &&
-      response2.Item.user_ID === event.headers.Authorization.split(" ")[1]
-    ) {
-      return { statusCode: 200, body: JSON.stringify(response2.Item) };
-    } else {
-      return {
-        statusCode: 200,
-        body: `{ "Error": "No Order with requested ID - Try Again" }`,
-      };
-    }
-  } catch (error) {
-    console.log(error);
-    return {
-      statusCode: 500,
-      body: `{ "Error": "Internal Server Error" }`,
-    };
-  }
-}
-```
-
-Deploy the app using `cdk deploy`. Test all orders functionality by adding new GET request with `/orders/:orderID` to get one order.
-If there is no auth token or given with wrong configartion an error will return in such case. To add Auth token from collection settings select bearer token and add user Id there. If there are no users in the database or the provided Auth is not from a registered users we recieve error message. If there is no order with provided Id or with given userID again message will be returned. These condotions are documented in above cases. If all conditions rae fullfilled results are as follows.
-
-![One Order](./snaps/step10-01.PNG)
+![One Order](./snaps/step1001.PNG)
 
 ### 11. Create resource to delete one order
 

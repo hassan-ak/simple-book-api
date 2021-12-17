@@ -10,7 +10,7 @@ export async function handler(event: any) {
   ) {
     return {
       statusCode: 400,
-      body: `{ "Error": "Provide Authentication token" }`,
+      body: `{ "Invalid Request": "Provide Authentication token" }`,
     };
   }
   const params1 = {
