@@ -21,14 +21,13 @@ export const handler = async (event: any = {}): Promise<any> => {
     // No books with requested ID
     if (!response.Item) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "Message": "No book with requested ID - Try Again" }`,
       };
     }
     // Book present in ddb with requested ID
     return { statusCode: 200, body: JSON.stringify(response.Item) };
   } catch (err) {
-    console.log("DynamoDB error: ", err);
     return { statusCode: 500, body: err };
   }
 };
