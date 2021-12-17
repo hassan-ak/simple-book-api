@@ -12,13 +12,13 @@ export const handler = async (event: any = {}): Promise<any> => {
   ) {
     return {
       statusCode: 400,
-      body: `{ "Error": "Provide Authentication token" }`,
+      body: `{ "Invalid Request": "Provide Authentication token" }`,
     };
   }
   if (!event.pathParameters || !event.pathParameters.id) {
     return {
       statusCode: 400,
-      body: `{ "Error": "You are missing the path parameter id" }`,
+      body: `{ "Invalid Request": "You are missing the path parameter id" }`,
     };
   }
   const params1 = {
@@ -29,7 +29,7 @@ export const handler = async (event: any = {}): Promise<any> => {
     const response1 = await db.scan(params1).promise();
     if (response1.Count === 0) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
       };
     }
@@ -41,7 +41,7 @@ export const handler = async (event: any = {}): Promise<any> => {
       ).length === 0
     ) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
       };
     }
@@ -55,8 +55,8 @@ export const handler = async (event: any = {}): Promise<any> => {
     const response2 = await db.get(params2).promise();
     if (!response2.Item) {
       return {
-        statusCode: 200,
-        body: `{ "Error": "No Order with requested ID - Try Again" }`,
+        statusCode: 201,
+        body: `{ "message": "No Order with requested ID - Try Again" }`,
       };
     }
     if (
@@ -70,17 +70,11 @@ export const handler = async (event: any = {}): Promise<any> => {
       };
     } else {
       return {
-        statusCode: 200,
-        body: `{ "Error": "No Order with requested ID - Try Again" }`,
+        statusCode: 201,
+        body: `{ "message": "No Order with requested ID - Try Again" }`,
       };
     }
   } catch (err) {
-    console.log("DynamoDB error: ", err);
     return { statusCode: 500, body: err };
   }
 };
-
-//   try {
-//
-
-//   }
