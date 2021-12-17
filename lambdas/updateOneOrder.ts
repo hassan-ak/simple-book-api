@@ -18,7 +18,7 @@ export const handler = async (event: any = {}): Promise<any> => {
   if (!event.body || Object.keys(JSON.parse(event.body)).length >= 2) {
     return {
       statusCode: 400,
-      body: `Invalid Request, You are missing the parameter body or giving too many parameters. Give parameters in the following format.\n {
+      body: `Invalid Request, You are missing the parameter body or giving too many parameters. Give parameters in the following format.\n{
         "noOfBooks": "No of Books to order"
         }`,
     };
@@ -50,7 +50,7 @@ export const handler = async (event: any = {}): Promise<any> => {
   const response1 = await db.scan(params1).promise();
   if (response1.Count === 0) {
     return {
-      statusCode: 200,
+      statusCode: 201,
       body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
     };
   }
@@ -62,7 +62,7 @@ export const handler = async (event: any = {}): Promise<any> => {
     ).length === 0
   ) {
     return {
-      statusCode: 200,
+      statusCode: 201,
       body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
     };
   }
