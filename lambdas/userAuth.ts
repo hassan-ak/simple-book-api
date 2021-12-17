@@ -11,7 +11,7 @@ export const handler = async (event: any = {}): Promise<any> => {
   if (!event.body || Object.keys(JSON.parse(event.body)).length >= 3) {
     return {
       statusCode: 400,
-      body: `Invalid Request, Body parameters are missing or too many parameters are given. Give parameters in the following format.\n{
+      body: `Invalid Request, Body parameters missing or too many parameters given. Give parameters in the following format.\n{
           "userName": "User's Name",
           "userEmail": "User's Email"
         }`,
@@ -64,7 +64,7 @@ export const handler = async (event: any = {}): Promise<any> => {
     // Check if user is already registered
     if (response.Item) {
       return {
-        statusCode: 401,
+        statusCode: 201,
         body: `User already registered. Copy user_ID to be used for Auth.\n${JSON.stringify(
           response.Item
         )}`,
@@ -81,7 +81,6 @@ export const handler = async (event: any = {}): Promise<any> => {
       }`,
     };
   } catch (err) {
-    console.log("DynamoDB error: ", err);
     return { statusCode: 500, body: err };
   }
 };

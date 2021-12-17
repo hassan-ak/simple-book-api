@@ -369,7 +369,7 @@ If there are books in database and no query all books will be returned
 
 ### 6. Create method to list one book
 
-Create a method so we can get one book from the database. Update "lib/simple-book-api-stack.ts" to create a lambda function to get one book from database and set environment variables, grant read write permission for all books table, lambda integration, resource to books resource and a method. One thing to keep in mind GET method is to be used here as we are getting data from ddb table.
+Create a method so we can get one book from the database. Update "lib/simple-book-api-stack.ts" to create a lambda function to get one book from database and set environment variables, grant read write permission for all books table, lambda integration, resource to books resource a method and CORS options.. One thing to keep in mind GET method is to be used here as we are getting data from ddb table.
 
 ```js
 // Resource to another resource
@@ -386,133 +386,21 @@ And if book is present it will be returned.
 
 ![Single book](./snaps/step0602.PNG)
 
-### 7. Create resource for user Auth.
+### 7. Create method for user Auth.
 
-Next step is to create a resource so we can register a user as we need to manage orders thus a user should be registered with the api. Update "lib/simple-book-api-stack.ts" to create a DynamoDb table to store user data and lambda function to register user in database and grant read write permission for ddb table. Also create lambda integration, resource and method. One thing to keep in mind POST method is to be used here as we are putting data to ddb table. While defining lambda function need to define environment variables.
+Create a method so we can register a user as we need to manage orders thus a user should be registered with the api. Update "lib/simple-book-api-stack.ts" to create a DynamoDb table to store user data and lambda function to register user in database and grant read write permission for users table. Also create lambda integration, resource to root a method and CORS options.. One thing to keep in mind POST method is to be used here as we are putting data to ddb table. While defining lambda function need to define environment variables. Create "lambdas/userAuth.ts" to define the handler for userAuth function so user can b registered. If no body is given or more than required parameters given or few parameters are missing or email is in wrong format invalid request message will be returned. If there is already registered user with same email user data will be displayed and in case every thing goes well user will be registered. Deploy the app using `cdk deploy`.
 
-```js
-const usersTable = new ddb.Table(this, "UsersTable", {
-  tableName: "Simple_Book_Api_Users",
-  partitionKey: {
-    name: "userEmail",
-    type: ddb.AttributeType.STRING,
-  },
-});
-const userAuthFunction = new lambda.Function(this, "userAuthFunction", {
-  functionName: "User-Auth-Function-Simple-Book-Api",
-  runtime: lambda.Runtime.NODEJS_14_X,
-  code: lambda.Code.fromAsset("lambdas"),
-  handler: "userAuth.handler",
-  memorySize: 1024,
-  environment: {
-    PRIMARY_KEY_USER: "userEmail",
-    TABLE_NAME_USER: usersTable.tableName,
-  },
-});
-usersTable.grantReadWriteData(userAuthFunction);
-const userAuthFunctionIntegration = new apigw.LambdaIntegration(
-  userAuthFunction
-);
-const userAuth = api.root.addResource("api-clients");
-userAuth.addMethod("POST", userAuthFunctionIntegration);
-addCorsOptions(userAuth);
-```
+Test user Auth functionality by adding new Post request with `/api-clients` to register new user. If there is no request body, more or less than necessary parameters are given we will recieve an invalid request message as in step 04 (add new book). If while registering email is given in wrong format an invalid request message will be returned.
 
-Create "lambdas/userAuth.ts" to define the handler for userAuth function so user can b registered
-
-```js
-import * as AWS from "aws-sdk";
-import { randomBytes } from "crypto";
-const PRIMARY_KEY_USER = process.env.PRIMARY_KEY_USER || "";
-const TABLE_NAME_USER = process.env.TABLE_NAME_USER || "";
-const db = new AWS.DynamoDB.DocumentClient();
-export const handler = async (event: any = {}): Promise<any> => {
-  // If no body given or extra values given
-  if (!event.body || Object.keys(JSON.parse(event.body)).length >= 3) {
-    return {
-      statusCode: 400,
-      body: `Invalid Request, Body parameters are missing or too many parameters are given. Give parameters in the following format.\n{
-          "userName": "User's Name",
-          "userEmail": "User's Email"
-        }`,
-    };
-  }
-  // Get data from request body
-  const item =
-    typeof event.body == "object" ? event.body : JSON.parse(event.body);
-  item["user_ID"] = randomBytes(32).toString("hex");
-  // Check if email in correct format
-  if (
-    !(/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(item.userEmail)
-      ? true
-      : false)
-  ) {
-    return {
-      statusCode: 400,
-      body: `{"Invalid Request": "Enter Email in valid format"}`,
-    };
-  }
-  // Params to add user
-  const params1 = {
-    TableName: TABLE_NAME_USER,
-    Item: item,
-  };
-  // Check if all parameters are given
-  if (!item.userEmail || !item.userName) {
-    return {
-      statusCode: 400,
-      body: `Invalid Request, You are missing some parameters in body. Give missing parameters.\n{
-          "userName": ${item.userName || "Missing"}, 
-          "userEmail": ${item.userEmail || "Missing"}
-        }`,
-    };
-  }
-  // params to check registered user
-  const params2 = {
-    TableName: TABLE_NAME_USER,
-    Key: {
-      [PRIMARY_KEY_USER]: item.userEmail,
-    },
-  };
-  try {
-    const response = await db.get(params2).promise();
-    // Check if user is already registered
-    if (response.Item) {
-      return {
-        statusCode: 401,
-        body: `User already registered. Copy user_ID to be used for Auth.\n${JSON.stringify(
-          response.Item
-        )}`,
-      };
-    }
-    // Register new user
-    await db.put(params1).promise();
-    return {
-      statusCode: 200,
-      body: `Following user success-fully registered. Copy user_ID to be used for Auth. \n{
-        "userName": ${item.userName}, 
-        "userEmail": ${item.userEmail},
-        "user_ID":${item.user_ID}
-      }`,
-    };
-  } catch (err) {
-    console.log("DynamoDB error: ", err);
-    return { statusCode: 500, body: err };
-  }
-};
-```
-
-Deploy the app using `cdk deploy`. Test user Auth functionality by adding new Post request with `/api-clients` to register new user. If there is no request body, more or less than necessary parameters we will recieve an error same as in the adding book step. If while registering email is given in wrong format an error message will be returned.
-
-![Wrong email format](./snaps/step07-01.PNG)
+![Wrong email format](./snaps/step0701.PNG)
 
 If user is already registered user details will be displayed with relevent message.
 
-![Already registered user](./snaps/step07-02.PNG)
+![Already registered user](./snaps/step0702.PNG)
 
 If every thing goes well user will be registered
 
-![register user](./snaps/step07-03.PNG)
+![register user](./snaps/step0703.PNG)
 
 ### 8. Create resource to place order
 
