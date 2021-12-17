@@ -463,6 +463,10 @@ Test update order functionality by adding new PATCH request with `/orders/:order
 
 ![Delete One Order](./snaps/step1201.PNG)
 
+### 13. Destroy App
+
+Destroy App using `cdk destroy`
+
 ## Reading Material
 
 - [Simple Book Api](https://github.com/vdespa/introduction-to-postman-course/blob/main/simple-books-api.md)
