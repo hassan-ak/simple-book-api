@@ -11,7 +11,7 @@ export async function handler(event: any) {
   ) {
     return {
       statusCode: 400,
-      body: `{ "Error": "Provide Authentication token" }`,
+      body: `{ "Invalid Request": "Provide Authentication token" }`,
     };
   }
   const params1 = {
@@ -21,7 +21,7 @@ export async function handler(event: any) {
     const response = await db.scan(params1).promise();
     if (response.Count === 0) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
       };
     }
@@ -33,7 +33,7 @@ export async function handler(event: any) {
       ).length === 0
     ) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
       };
     }
@@ -44,7 +44,7 @@ export async function handler(event: any) {
     const response2 = await db.scan(params2).promise();
     if (response2.Count === 0) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "Currently No orders in place" }`,
       };
     }
@@ -56,7 +56,7 @@ export async function handler(event: any) {
       ).length === 0
     ) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "Currently No orders in place" }`,
       };
     }
@@ -72,7 +72,7 @@ export async function handler(event: any) {
       };
     } else {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "Currently No orders in place" }`,
       };
     }
