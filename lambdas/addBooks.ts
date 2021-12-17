@@ -11,7 +11,7 @@ export const handler = async (event: any = {}): Promise<any> => {
   if (!event.body || Object.keys(JSON.parse(event.body)).length > 7) {
     return {
       statusCode: 400,
-      body: `Invalid Request, Body parameters are missing or too many parameters are given. Give parameters in the following format.\n{
+      body: `Invalid Request, Body parameters missing or too many parameters given. Give parameters in the following format.\n{
           "book": "Book Name", 
           "author": "Authos's Name", 
           "isbn": "Book isbn", 
@@ -37,7 +37,7 @@ export const handler = async (event: any = {}): Promise<any> => {
   ) {
     return {
       statusCode: 400,
-      body: `Invalid Request, Few body parameters are missing or parameters are in wrong format. Give parameters correctly .\n{
+      body: `Invalid Request, Few body parameters missing or in wrong format. Give parameters correctly.\n{
         "book": ${item.book || "Parameter Missing"}, 
         "author": ${item.author || "Parameter Missing"}, 
         "isbn": ${item.isbn || "Parameter Missing"}, 
@@ -76,7 +76,6 @@ export const handler = async (event: any = {}): Promise<any> => {
   };
 
   // When all conditions are good to go, put data in the table and return item as output
-  // in case of error return error
   try {
     await db.put(params).promise();
     return {
@@ -93,7 +92,7 @@ export const handler = async (event: any = {}): Promise<any> => {
       }`,
     };
   } catch (err) {
-    console.log("DynamoDB error: ", err);
+    // in case of DDB error return error
     return { statusCode: 500, body: err };
   }
 };
