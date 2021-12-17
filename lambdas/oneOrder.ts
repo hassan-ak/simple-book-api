@@ -20,7 +20,7 @@ export async function handler(event: any) {
     const response = await db.scan(params1).promise();
     if (response.Count === 0) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
       };
     }
@@ -32,7 +32,7 @@ export async function handler(event: any) {
       ).length === 0
     ) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
       };
     }
@@ -47,8 +47,8 @@ export async function handler(event: any) {
     const response2 = await db.get(params2).promise();
     if (!response2.Item) {
       return {
-        statusCode: 200,
-        body: `{ "Error": "No Order with requested ID - Try Again" }`,
+        statusCode: 201,
+        body: `{ "message": "No Order with requested ID - Try Again" }`,
       };
     }
     if (
@@ -58,15 +58,12 @@ export async function handler(event: any) {
       return { statusCode: 200, body: JSON.stringify(response2.Item) };
     } else {
       return {
-        statusCode: 200,
-        body: `{ "Error": "No Order with requested ID - Try Again" }`,
+        statusCode: 201,
+        body: `{ "message": "No Order with requested ID - Try Again" }`,
       };
     }
   } catch (error) {
     console.log(error);
-    return {
-      statusCode: 500,
-      body: `{ "Error": "Internal Server Error" }`,
-    };
+    return { statusCode: 500, body: error };
   }
 }
