@@ -16,7 +16,7 @@ export async function handler(event: any) {
   ) {
     return {
       statusCode: 400,
-      body: `{ "Error": "Provide Authentication token" }`,
+      body: `{ "Invalid Request": "Provide Authentication token" }`,
     };
   }
   // Check for request body
@@ -55,7 +55,7 @@ export async function handler(event: any) {
     // check if there are users registered in database
     if (response.Count === 0) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{"message": "You are not a registered user. Register Yourself or provide correct user Key"}`,
       };
     } else {
@@ -67,7 +67,7 @@ export async function handler(event: any) {
           ).length === 0
         ) {
           return {
-            statusCode: 200,
+            statusCode: 201,
             body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
           };
         } else {
@@ -87,7 +87,7 @@ export async function handler(event: any) {
           // check for Book in database
           if (!response2.Item) {
             return {
-              statusCode: 200,
+              statusCode: 201,
               body: `{ "message": "No book with requested ID - Try Again" }`,
             };
           }
@@ -105,7 +105,7 @@ export async function handler(event: any) {
           // place order
           return {
             statusCode: 200,
-            body: `Order with following details success-fully placed.\n {
+            body: `Order with following details success-fully placed.\n{
                 "orderID": ${item.orderID},
                 "userName":${item.userName},
                 "userEmail":${item.userEmail},
@@ -122,7 +122,7 @@ export async function handler(event: any) {
         }
       } else {
         return {
-          statusCode: 200,
+          statusCode: 201,
           body: `{ "message": "You are not a registered user. Register Yourself or provide correct user Key" }`,
         };
       }
