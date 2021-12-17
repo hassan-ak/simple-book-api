@@ -328,25 +328,12 @@ If all the conditions are staisfied book will be added to table.
 
 If there is some error with DynamoDB it will be returned as well.
 
-### 5. Create resource to list all books
+### 5. Create method to list all books
 
-Next step is to create a resource so we can get all books from the database. Update "lib/simple-book-api-stack.ts" to create a lambda function to get all books from database and grant read write permission for ddb table. Also create lambda integration and method.. One thing to keep in mind GET method is to be used here as we are getting data from ddb table. While defining lambda function need to define environment variables and request parameters while adding a method to books resource.
+Create a method so we can get all books from the database. Update "lib/simple-book-api-stack.ts" to create a lambda function to get all books from database and set environment variables, grant read write permission for all books table, lambda integration and a method. One thing to keep in mind GET method is to be used here as we are getting data from ddb table. We need to define request parameters while adding a method to books resource.
 
 ```js
-const allBooksFunction = new lambda.Function(this, "allBooksFunction", {
-  functionName: "All-Books-Function-Simple-Book-Api",
-  runtime: lambda.Runtime.NODEJS_14_X,
-  code: lambda.Code.fromAsset("lambdas"),
-  handler: "allBooks.handler",
-  memorySize: 1024,
-  environment: {
-    TABLE_NAME_ALL: allBooksTable.tableName,
-  },
-});
-allBooksTable.grantReadWriteData(allBooksFunction);
-const allBooksFunctionIntegration = new apigw.LambdaIntegration(
-  allBooksFunction
-);
+// Method with request parameters
 books.addMethod("GET", allBooksFunctionIntegration, {
   requestParameters: {
     "method.request.querystring.book_type": false,
@@ -355,177 +342,30 @@ books.addMethod("GET", allBooksFunctionIntegration, {
 });
 ```
 
-Create "lambdas/allBooks.ts" to define the handler for allBooks function so books can be listed from database. When no query parameters are given all books will be rturned. We can also query based on book type and number of books.
+Create "lambdas/allBooks.ts" to define the handler for allBooks function so books can be listed from database. When there is no book in db a message will be returned, if format for query parameter is wrong message to be returned.When no query parameters are given all books will be rturned. We can also query based on book type and number of books. If there is no book of such type relevent message to be returned again. Deploy the app using `cdk deploy`.
 
-```js
-import * as AWS from "aws-sdk";
+Test the API using postman.For testing create new GET request on postman with sub path `/books`.
+When there are no books stored in the dynamoDB table a message will be returned stating no books available.
 
-const TABLE_NAME_ALL = process.env.TABLE_NAME_ALL || "";
-
-const db = new AWS.DynamoDB.DocumentClient();
-
-export const handler = async (event: any, context: any): Promise<any> => {
-  const params = {
-    TableName: TABLE_NAME_ALL,
-    ProjectionExpression: "book, bookID, book_type",
-  };
-  try {
-    const response = await db.scan(params).promise();
-    // In case there is no book in data base
-    if (response.Count === 0) {
-      return {
-        statusCode: 200,
-        body: `{ "message": "No Books currently available" }`,
-      };
-    }
-    // When there is limit in the query
-    if (
-      event.queryStringParameters &&
-      event.queryStringParameters.limit &&
-      !event.queryStringParameters.book_type
-    ) {
-      if (!parseInt(event.queryStringParameters.limit)) {
-        return {
-          statusCode: 200,
-          body: `{ "message": "Enter Limit in numeric form or greater than 0" }`,
-        };
-      } else {
-        if (response.Items) {
-          return {
-            statusCode: 200,
-            body: JSON.stringify(
-              response.Items.slice(
-                0,
-                Math.abs(event.queryStringParameters.limit)
-              )
-            ),
-          };
-        }
-      }
-    }
-    // When there is book_type in query
-    if (
-      event.queryStringParameters &&
-      !event.queryStringParameters.limit &&
-      event.queryStringParameters.book_type
-    ) {
-      if (
-        event.queryStringParameters.book_type.toLowerCase() !== "fiction" &&
-        event.queryStringParameters.book_type.toLowerCase() !== "non-fiction"
-      ) {
-        return {
-          statusCode: 200,
-          body: `{ "message": "Type should be 'fiction' or 'non-fiction'" }`,
-        };
-      } else {
-        if (response.Items) {
-          if (
-            response.Items.filter(
-              (item) =>
-                item.book_type ===
-                event.queryStringParameters.book_type.toLowerCase()
-            ).length === 0
-          ) {
-            return {
-              statusCode: 200,
-              body: `{ "message": "There is no book of type ${event.queryStringParameters.book_type.toLowerCase()}" }`,
-            };
-          }
-          return {
-            statusCode: 200,
-            body: JSON.stringify(
-              response.Items.filter(
-                (item) =>
-                  item.book_type ===
-                  event.queryStringParameters.book_type.toLowerCase()
-              )
-            ),
-          };
-        }
-      }
-    }
-    // When there is both limit and book_type in the query
-    if (
-      event.queryStringParameters &&
-      event.queryStringParameters.limit &&
-      event.queryStringParameters.book_type
-    ) {
-      if (
-        event.queryStringParameters.book_type.toLowerCase() !== "fiction" &&
-        event.queryStringParameters.book_type.toLowerCase() !== "non-fiction"
-      ) {
-        return {
-          statusCode: 200,
-          body: `{ "message": "Type should be 'fiction' or 'non-fiction'" }`,
-        };
-      } else {
-        if (response.Items) {
-          if (
-            response.Items.filter(
-              (item) =>
-                item.book_type ===
-                event.queryStringParameters.book_type.toLowerCase()
-            ).length === 0
-          ) {
-            return {
-              statusCode: 200,
-              body: `{ "message": "There is no book of type ${event.queryStringParameters.book_type.toLowerCase()}" }`,
-            };
-          } else {
-            const results = response.Items.filter(
-              (item) =>
-                item.book_type ===
-                event.queryStringParameters.book_type.toLowerCase()
-            );
-            console.log(results);
-            if (!parseInt(event.queryStringParameters.limit)) {
-              return {
-                statusCode: 200,
-                body: `{ "message": "Enter Limit in numeric form or greater than 0" }`,
-              };
-            } else {
-              if (results) {
-                return {
-                  statusCode: 200,
-                  body: JSON.stringify(
-                    results.slice(
-                      0,
-                      Math.abs(event.queryStringParameters.limit)
-                    )
-                  ),
-                };
-              }
-            }
-          }
-        }
-      }
-    }
-    // No query parameters
-    return { statusCode: 200, body: JSON.stringify(response.Items) };
-  } catch (err) {
-    console.log("DynamoDB error: ", err);
-    return { statusCode: 500, body: err };
-  }
-};
-```
-
-Deploy the app using `cdk deploy` and then test it using postman.For testing create new GET request on postman with sub path `/books`.
-
-When there are no books stored in the dynamoDB table a message will be returned stating no books in table. And if there are books in the database all books will be displayed
-
-![All Books with empty database](./snaps/step05-01.PNG)
-
-![All Books](./snaps/step05-02.PNG)
+![All Books with empty database](./snaps/step0501.PNG)
 
 We can also add query parameters and when query parameters are given but book_type mismatch or limit not numeric again an error will be returned.
 
-![book_type in query is incorrect](./snaps/step05-03.PNG)
+![book_type in query is incorrect](./snaps/step0502.PNG)
 
-![limit in query is not numeric](./snaps/step05-04.PNG)
+![limit in query is not numeric](./snaps/step0503.PNG)
+
+If there is no book with requested book type again a message will be returned as follows.
+
+![No book with requested type](./snaps/step0504.PNG)
 
 Adding correct query parameters in correct format will return results as requested and one more thing any query other than book_type and limit will not be processed.
 
-![Query prameters with request](./snaps/step05-05.PNG)
+![Query prameters with request](./snaps/step0505.PNG)
+
+If there are books in database and no query all books will be returned
+
+![All Books](./snaps/step0506.PNG)
 
 ### 6. Create resource to list one book
 

@@ -4,7 +4,7 @@ const TABLE_NAME_ALL = process.env.TABLE_NAME_ALL || "";
 
 const db = new AWS.DynamoDB.DocumentClient();
 
-export const handler = async (event: any, context: any): Promise<any> => {
+export const handler = async (event: any): Promise<any> => {
   const params = {
     TableName: TABLE_NAME_ALL,
     ProjectionExpression: "book, bookID, book_type",
@@ -15,7 +15,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
     // In case there is no book in data base
     if (response.Count === 0) {
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: `{ "message": "No Books currently available" }`,
       };
     }
@@ -29,7 +29,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
       if (!parseInt(event.queryStringParameters.limit)) {
         return {
           statusCode: 400,
-          body: `{ "message": "Enter Limit in numeric form or greater than 0" }`,
+          body: `{ "Invalid Request": "Enter Limit in numeric form or greater than 0" }`,
         };
       } else {
         if (response.Items) {
@@ -58,7 +58,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
       ) {
         return {
           statusCode: 400,
-          body: `{ "message": "Type should be 'fiction' or 'non-fiction'" }`,
+          body: `{ "Invalid Request": "Type should be 'fiction' or 'non-fiction'" }`,
         };
       } else {
         if (response.Items) {
@@ -70,7 +70,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
             ).length === 0
           ) {
             return {
-              statusCode: 200,
+              statusCode: 201,
               body: `{ "message": "There is no book of type ${event.queryStringParameters.book_type.toLowerCase()}" }`,
             };
           }
@@ -100,7 +100,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
       ) {
         return {
           statusCode: 400,
-          body: `{ "message": "Type should be 'fiction' or 'non-fiction'" }`,
+          body: `{ "Invalid Request": "Type should be 'fiction' or 'non-fiction'" }`,
         };
       } else {
         if (response.Items) {
@@ -112,7 +112,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
             ).length === 0
           ) {
             return {
-              statusCode: 200,
+              statusCode: 201,
               body: `{ "message": "There is no book of type ${event.queryStringParameters.book_type.toLowerCase()}" }`,
             };
           } else {
@@ -125,7 +125,7 @@ export const handler = async (event: any, context: any): Promise<any> => {
             if (!parseInt(event.queryStringParameters.limit)) {
               return {
                 statusCode: 400,
-                body: `{ "message": "Enter Limit in numeric form or greater than 0" }`,
+                body: `{ "Invalid Request": "Enter Limit in numeric form or greater than 0" }`,
               };
             } else {
               if (results) {
@@ -148,7 +148,6 @@ export const handler = async (event: any, context: any): Promise<any> => {
     // No queries
     return { statusCode: 200, body: JSON.stringify(response.Items) };
   } catch (err) {
-    console.log("DynamoDB error: ", err);
     return { statusCode: 500, body: err };
   }
 };
